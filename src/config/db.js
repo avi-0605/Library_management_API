@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost:27017/library-management-api');
+mongoose.connect(process.env.MongoUri);
 
 const db = mongoose.connection;
 
