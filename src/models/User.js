@@ -19,18 +19,19 @@ const userschema={
         required:true,
     },
 
-    role:{type:String,
-        reuired:true,
-        enum:["Librarian","Students"],
-        default:"Student"
+    role: {
+        type: String,
+        required: true,
+        enum: ["Librarian", "Student"],
+        default: "Student"
     },
-    
-    createdAt:{
-        type:String,
-        default:DataTransfer,now 
-        }
+
+    createdAt: {
+        type: Date,
+        default: Date.now
+    }
 };
 
-const User=new mongoose.model("User",userschema);
-module.export=User;
+const User = mongoose.model("User", userschema);
+module.exports = User;
 
