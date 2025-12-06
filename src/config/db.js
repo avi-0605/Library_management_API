@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-mongoose.connect(process.env.MongoUri);
+mongoose.connect('mongodb://localhost:27017/libraryManagement');
 
 const db = mongoose.connection;
 

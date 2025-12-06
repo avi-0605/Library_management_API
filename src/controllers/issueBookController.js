@@ -7,23 +7,18 @@ issueBook = async (request, response) => {
     try {
         const { bookId, bookName, studentId, studentName, issueDate, dueDate } = request.body;
 
-        const book = await Book.findById(bookId);
-
-        if (!book) {
-            return response.status(400).json({ message: "Book not found" });
+        if (!bookId || !bookName || !studentId || !studentName || !issueDate || !dueDate) {
+            return response.status(400).json({ message: "Please send all fields properly" });
         }
+
+        const book = await Book.findById(bookId);
+        if (!book) return response.status(400).json({ message: "Book not found" });
+        if (book.quantity < 1) return response.status(400).json({ message: "Book is not available" });
 
         const student = await User.findById(studentId);
+        if (!student) return response.status(400).json({ message: "Student not found" });
 
-        if (!student) {
-            return response.status(400).json({ message: "Student not found" });
-        }
-
-        if (book.quantity < 1) {
-            return response.status(400).json({ message: "Book is not available" });
-        }
-
-        const newIssueBook = {
+        const newIssueBook = new Issuebook({
             bookId,
             bookName,
             studentId,
@@ -31,43 +26,41 @@ issueBook = async (request, response) => {
             issueDate,
             returnDate: dueDate,
             status: "Issued"
-        };
+        });
 
-        const issue = new Issuebook(newIssueBook);
-        await issue.save();
+        await newIssueBook.save();
 
-        book.quantity = book.quantity - 1;
+        book.quantity = Math.max(0, book.quantity - 1);
         await book.save();
 
-        response.status(201).json({ message: "Book issued successfully", data: issue });
-    }
-    catch (error) {
+        response.status(201).json({ message: "Book issued successfully", data: newIssueBook });
+    } catch (error) {
+        console.error("ISSUE BOOK ERROR:", error);
         response.status(500).json({ message: error.message });
     }
 };
 
 returnBook = async (request, response) => {
     try {
-        const issueBook = await Issuebook.findById(request.params.id);
+        const issuedRecord = await Issuebook.findById(request.params.id);
 
-        if (!issueBook) {
-            return response.status(404).json({ message: "Issued book not found" });
+        if (!issuedRecord) return response.status(404).json({ message: "Issued book not found" });
+        if (issuedRecord.status === "Returned") return response.status(400).json({ message: "Book is already returned" });
+
+        issuedRecord.status = "Returned";
+        await issuedRecord.save();
+
+        const book = await Book.findById(issuedRecord.bookId);
+        if (book) {
+            book.quantity = book.quantity + 1;
+            await book.save();
         }
 
-        if (issueBook.status === "Returned") {
-            return response.status(400).json({ message: "Book is already returned" });
-        }
-
-        issueBook.status = "Returned";
-        await issueBook.save();
-        const book = await Book.findById(issueBook.bookId);
-        book.quantity = book.quantity + 1;
-        await book.save();
-
-        response.status(200).json({ message: "Book returned successfully", data: issueBook });
-    }
-    catch (error) {
+        response.status(200).json({ message: "Book returned successfully", data: issuedRecord });
+    } catch (error) {
+        console.error("RETURN BOOK ERROR:", error);
         response.status(500).json({ message: error.message });
     }
-}
+};
+
 module.exports = { issueBook, returnBook };
